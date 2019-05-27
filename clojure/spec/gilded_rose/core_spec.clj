@@ -10,14 +10,25 @@
                 "Sulfuras, Hand Of Ragnaros"
                 "Backstage passes to a TAFKAL80ETC concert"})
 
-(s/def ::sell-in integer?)
-(s/def ::quality (s/and integer? #(> % 0)))
+(s/def ::sell-in (s/and integer?
+                        #(> % -5)
+                        #(< % 20)))
+
+(s/def ::quality (s/and integer?
+                        #(>= % 0)
+                        #(< % 90)))
 
 (s/def ::item (s/keys :req-un [::name ::sell-in ::quality]))
 
 
-(gen/sample (s/gen ::item) 10000)
+(defn ranged-rand
+  "Returns random int in range start <= rand < end"
+  [start end]
+  (+ start (long (rand (- end start)))))
 
+
+(def test-backstage-pass
+  {:name "Backstage passes to a TAFKAL80ETC concert", :sell-in 14, :quality 33})
 
 (def current-inventory
   '( {:name "+5 Dexterity Vest", :sell-in 9, :quality 19}
@@ -28,6 +39,8 @@
 
 (deftest check-current-inventory
   (is (= current-inventory (c/update-current-inventory)))
-  (is (= "foo" (:name (first (c/update-quality [(c/item "foo" 0 0)])))))
+  (is (= "foo"  (:name (first (c/update-quality [(c/item "foo" 0 0)])))))
   (is (s/valid? (s/coll-of ::item) current-inventory))
-  (is (s/valid? (s/coll-of ::item) (gen/sample (s/gen ::item) 10000))))
+  (is (s/valid? (s/coll-of ::item) (gen/sample (s/gen ::item) 1000))))
+
+
