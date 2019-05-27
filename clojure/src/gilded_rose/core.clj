@@ -9,8 +9,15 @@
 (defn past-sell-in? [item]
   (< (:sell-in item) 0))
 
-(defn update-quality-twice [item]
-  (merge item {:quality (inc (inc (:quality item)))}))
+(defn increase-quality [item val]
+  (update item :quality #(+ val %)))
+
+(defn quality-to-zero [item]
+  (assoc item :quality 0))
+
+
+(defn decrease-quality [item val]
+  (update item :quality #(- val %)))
 
 (defn update-quality
   [items]
@@ -18,8 +25,7 @@
     (fn[item] (cond
                 (and (past-sell-in? item)
                      (is-backstage-pass? item))
-                (merge item {:quality 0})
-
+                (quality-to-zero item)
 
 
                 (or (is-aged-brie? item)
@@ -27,29 +33,26 @@
                 (if (and (is-backstage-pass? item)
                          (>= (:sell-in item) 5)
                          (< (:sell-in item) 10))
-                  (update-quality-twice item)
+                  (increase-quality item 2)
                   (if (and (is-backstage-pass? item)
                            (>= (:sell-in item) 0)
                            (< (:sell-in item) 5))
-                    (merge item {:quality (inc (inc (inc (:quality item))))})
+                    (increase-quality item 3)
                     (if (< (:quality item) 50)
-                      (merge item {:quality (inc (:quality item))})
+                      (increase-quality item 1)
                       item)))
-
-
 
                 (past-sell-in? item)
                 (if (is-backstage-pass? item)
-                  (merge item {:quality 0})
+                  (quality-to-zero item)
                   (if (or (= "+5 Dexterity Vest" (:name item))
                           (= "Elixir of the Mongoose" (:name item)))
-                    (merge item {:quality (- (:quality item) 2)})
+                    (decrease-quality item 2)
                     item))
-
 
                 (or (= "+5 Dexterity Vest" (:name item))
                     (= "Elixir of the Mongoose" (:name item)))
-                (merge item {:quality (dec (:quality item))})
+                (update item :quality dec)
 
                 :else item))
   (map (fn [item]
