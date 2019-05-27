@@ -14,7 +14,6 @@
 (s/def ::quality (s/int-in 0 90))
 (s/def ::item    (s/keys :req-un [::name ::sell-in ::quality]))
 
-
 (def test-backstage-pass
   {:name "Backstage passes to a TAFKAL80ETC concert", :sell-in 10, :quality 33})
 
@@ -34,7 +33,7 @@
   (is (= current-inventory (c/update-current-inventory)))
   (is (= "foo"  (:name (first (c/update-quality [(c/item "foo" 0 0)])))))
   (is (s/valid? (s/coll-of ::item) current-inventory))
-  (is (s/valid? (s/coll-of ::item) (gen/sample (s/gen ::item) 30000))))
+  (is (s/valid? (s/coll-of ::item) (gen/sample (s/gen ::item) 50000))))
 
 (deftest backstage-passes-order-test
   (is (= 35 (:quality (first (first-stage-backstage-pass)))))
@@ -47,7 +46,7 @@
   (is (= 46 (:quality (first (c/update-quality [(-> test-backstage-pass
                                                     (assoc :sell-in 5)
                                                     (assoc :quality 43))])))))
-  (is (= 58 (:quality (first (reduce (fn [x _] (c/update-quality x))
+  (is (= 50 (:quality (first (reduce (fn [x _] (c/update-quality x))
                                      [(-> test-backstage-pass
                                           (assoc :sell-in 5)
                                           (assoc :quality 43))]
@@ -61,5 +60,4 @@
                                      [(-> test-backstage-pass
                                           (assoc :sell-in 5)
                                           (assoc :quality 43))]
-                                     (range 6))))))
-  )
+                                     (range 6)))))))

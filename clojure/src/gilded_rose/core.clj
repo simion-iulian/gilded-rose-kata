@@ -36,50 +36,56 @@
   [item]
   (update item :sell-in dec))
 
+(defn normal-item?
+  [item]
+  (or (= "+5 Dexterity Vest" (:name item))
+      (= "Elixir of the Mongoose" (:name item))))
+
+(defn is-legendary?
+  [item]
+  (= "Sulfuras, Hand of Ragnaros" (:name item)))
+
 (defn update-quality
   [items]
-  (map
-    (fn[item] (cond
-                ;Backstage pass goes to 0 past sell in
-                (and (past-sell-in? item)
-                     (is-backstage-pass? item))
-                (quality-to-zero item)
-
-                (is-backstage-pass? item)
-                (cond
-                  (backstage-triple-increase? item)
-                  (increase-quality item 3)
-
-                  (backstage-double-increase? item)
-                  (increase-quality item 2)
-
-                  :else
-                  (if (< (:quality item) 50)
-                    (increase-quality item 1)
-                    item))
-
-                (is-aged-brie? item)
-                ;Backstage pass increases with 2 between 10 and 5days before sell-in
-                (if (< (:quality item) 50)
-                  (increase-quality item 1)
-                  item)
-
-                (past-sell-in? item)
-                (if (or (= "+5 Dexterity Vest" (:name item))
-                        (= "Elixir of the Mongoose" (:name item)))
-                  (decrease-quality item 2)
-                  item)
-
-                (or (= "+5 Dexterity Vest" (:name item))
-                    (= "Elixir of the Mongoose" (:name item)))
-                (update item :quality dec)
-
-                :else item))
   (map (fn [item]
-         (if (not= "Sulfuras, Hand of Ragnaros" (:name item))
-           (update-sell-in item)
-           item))
-       items)))
+         (cond
+           (past-sell-in? item)
+           (cond
+             (is-backstage-pass? item)
+             (quality-to-zero item)
+
+             (normal-item? item)
+             (decrease-quality item 2)
+
+             :else
+             item)
+
+           (is-backstage-pass? item)
+           (cond
+             (and (backstage-triple-increase? item)
+                  (<= (:quality item) 47))
+             (increase-quality item 3)
+
+             (and (backstage-double-increase? item)
+                  (<= (:quality item) 48))
+             (increase-quality item 2)
+
+             (< (:quality item) 50)
+             (increase-quality item 1)
+
+             :else
+             item)
+
+           (and (is-aged-brie? item)
+                (< (:quality item) 50))
+           (increase-quality item 1)
+
+           (normal-item? item)
+           (update item :quality dec)
+
+           :else item))
+
+       (map update-sell-in (remove is-legendary? items))))
 
 (defn item [item-name, sell-in, quality]
   {:name item-name, :sell-in sell-in, :quality quality})
