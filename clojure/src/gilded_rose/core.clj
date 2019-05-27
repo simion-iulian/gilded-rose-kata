@@ -1,16 +1,17 @@
 (ns gilded-rose.core)
 
-(defn is-backstage-pass? [item]
+(defn backstage-pass? [item]
   (= "Backstage passes to a TAFKAL80ETC concert" (:name item)))
 
-(defn is-aged-brie? [item]
-  (= (:name item) "Aged Brie"))
+(defn aged-brie? [item]
+  (and (= (:name item) "Aged Brie")
+       (< (:quality item) 50)))
 
 (defn past-sell-in? [item]
   (< (:sell-in item) 0))
 
 (defn increase-quality [item val]
-  (update item :quality #(+ val %)))
+  (update item :quality #(+ % val)))
 
 (defn quality-to-zero
   [item]
@@ -19,15 +20,15 @@
 
 (defn decrease-quality
   [item val]
-  (update item :quality #(- val %)))
+  (update item :quality #(- % val)))
 
-(defn backstage-double-increase?
+(defn double-increase?
   [item]
   (and
     (>= (:sell-in item) 5)
     (< (:sell-in item) 10)))
 
-(defn backstage-triple-increase?
+(defn triple-increase?
   [item]
   (and (>= (:sell-in item) 0)
        (< (:sell-in item) 5)))
@@ -45,46 +46,55 @@
   [item]
   (= "Sulfuras, Hand of Ragnaros" (:name item)))
 
+(defn- process-past-sell-in
+  [item]
+  (cond
+    (backstage-pass? item)
+    (quality-to-zero item)
+
+    (normal-item? item)
+    (decrease-quality item 2)
+
+    :else
+    item))
+
+(defn- process-back-stage-pass
+  [item]
+  (cond
+    (and (triple-increase? item)
+         (<= (:quality item) 47))
+    (increase-quality item 3)
+
+    (and (double-increase? item)
+         (<= (:quality item) 48))
+    (increase-quality item 2)
+
+    (< (:quality item) 50)
+    (increase-quality item 1)
+
+    :else
+    item))
+
+(defn- process-item
+  [item]
+  (cond
+    (past-sell-in? item)
+    (process-past-sell-in item)
+
+    (backstage-pass? item)
+    (process-back-stage-pass item)
+
+    (aged-brie? item)
+    (increase-quality item 1)
+
+    (normal-item? item)
+    (decrease-quality item 1)
+
+    :else item))
+
 (defn update-quality
   [items]
-  (map (fn [item]
-         (cond
-           (past-sell-in? item)
-           (cond
-             (is-backstage-pass? item)
-             (quality-to-zero item)
-
-             (normal-item? item)
-             (decrease-quality item 2)
-
-             :else
-             item)
-
-           (is-backstage-pass? item)
-           (cond
-             (and (backstage-triple-increase? item)
-                  (<= (:quality item) 47))
-             (increase-quality item 3)
-
-             (and (backstage-double-increase? item)
-                  (<= (:quality item) 48))
-             (increase-quality item 2)
-
-             (< (:quality item) 50)
-             (increase-quality item 1)
-
-             :else
-             item)
-
-           (and (is-aged-brie? item)
-                (< (:quality item) 50))
-           (increase-quality item 1)
-
-           (normal-item? item)
-           (update item :quality dec)
-
-           :else item))
-
+  (map process-item
        (map update-sell-in (remove is-legendary? items))))
 
 (defn item [item-name, sell-in, quality]
