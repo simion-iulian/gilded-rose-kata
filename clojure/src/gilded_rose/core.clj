@@ -21,13 +21,13 @@
   [item val]
   (update item :quality #(- val %)))
 
-(defn first-backstage-increase-value?
+(defn backstage-double-increase?
   [item]
   (and
     (>= (:sell-in item) 5)
     (< (:sell-in item) 10)))
 
-(defn second-backstage-increase-value?
+(defn backstage-triple-increase?
   [item]
   (and (>= (:sell-in item) 0)
        (< (:sell-in item) 5)))
@@ -45,29 +45,30 @@
                      (is-backstage-pass? item))
                 (quality-to-zero item)
 
+                (is-backstage-pass? item)
+                (cond
+                  (backstage-triple-increase? item)
+                  (increase-quality item 3)
 
-                (or (is-aged-brie? item)
-                    (is-backstage-pass? item))
-                ;Backstage pass increases with 2 between 10 and 5days before sell-in
-                (if (and (is-backstage-pass? item)
-                         (first-backstage-increase-value? item))
+                  (backstage-double-increase? item)
                   (increase-quality item 2)
-                  ;Backstage pass increases with 3 between 10 and 5days before sell-in
-                  (if (and (is-backstage-pass? item)
-                           (second-backstage-increase-value? item))
-                    (increase-quality item 3)
-                    (if (< (:quality item) 50)
-                      (increase-quality item 1)
-                      item)))
 
-                ;Backstage pass is already checked to go to 0 above.
-                (past-sell-in? item)
-                (if (is-backstage-pass? item)
-                  (quality-to-zero item)
-                  (if (or (= "+5 Dexterity Vest" (:name item))
-                          (= "Elixir of the Mongoose" (:name item)))
-                    (decrease-quality item 2)
+                  :else
+                  (if (< (:quality item) 50)
+                    (increase-quality item 1)
                     item))
+
+                (is-aged-brie? item)
+                ;Backstage pass increases with 2 between 10 and 5days before sell-in
+                (if (< (:quality item) 50)
+                  (increase-quality item 1)
+                  item)
+
+                (past-sell-in? item)
+                (if (or (= "+5 Dexterity Vest" (:name item))
+                        (= "Elixir of the Mongoose" (:name item)))
+                  (decrease-quality item 2)
+                  item)
 
                 (or (= "+5 Dexterity Vest" (:name item))
                     (= "Elixir of the Mongoose" (:name item)))
@@ -83,7 +84,8 @@
 (defn item [item-name, sell-in, quality]
   {:name item-name, :sell-in sell-in, :quality quality})
 
-(def ^:private current-inventory[
+(def ^:private current-inventory
+  [
    (item "+5 Dexterity Vest" 10 20)
    (item "Aged Brie" 2 0)
    (item "Elixir of the Mongoose" 5 7)
