@@ -35,29 +35,28 @@
   (is (s/valid? (s/coll-of ::item) current-inventory))
   (is (s/valid? (s/coll-of ::item) (gen/sample (s/gen ::item) 50000))))
 
+(defn- update-quality-repeat
+  [items n]
+  (first (reduce (fn [x _] (c/update-quality x))
+                 items
+                 (range n))))
+
 (deftest backstage-passes-order-test
   (is (= 35 (:quality (first (first-stage-backstage-pass)))))
-  (is (= 37 (:quality (first (reduce (fn [x _] (c/update-quality x))
-                                     (first-stage-backstage-pass)
-                                     (range 1))))))
-  (is (= 39 (:quality (first (reduce (fn [x _] (c/update-quality x))
-                                     (first-stage-backstage-pass)
-                                     (range 2))))))
+  (is (= 37 (:quality (update-quality-repeat (first-stage-backstage-pass) 1))))
+  (is (= 39 (:quality (update-quality-repeat (first-stage-backstage-pass) 2))))
   (is (= 46 (:quality (first (c/update-quality [(-> test-backstage-pass
                                                     (assoc :sell-in 5)
                                                     (assoc :quality 43))])))))
-  (is (= 50 (:quality (first (reduce (fn [x _] (c/update-quality x))
-                                     [(-> test-backstage-pass
-                                          (assoc :sell-in 5)
-                                          (assoc :quality 43))]
-                                     (range 5))))))
-  (is (= -1 (:sell-in (first (reduce (fn [x _] (c/update-quality x))
-                                    [(-> test-backstage-pass
-                                         (assoc :sell-in 5)
-                                         (assoc :quality 43))]
-                                    (range 6))))))
-  (is (= 0 (:quality (first (reduce (fn [x _] (c/update-quality x))
-                                     [(-> test-backstage-pass
-                                          (assoc :sell-in 5)
-                                          (assoc :quality 43))]
-                                     (range 6)))))))
+  (is (= 50 (:quality (update-quality-repeat [(-> test-backstage-pass
+                                                  (assoc :sell-in 5)
+                                                  (assoc :quality 43))]
+                                             5))))
+  (is (= -1 (:sell-in (update-quality-repeat [(-> test-backstage-pass
+                                                  (assoc :sell-in 5)
+                                                  (assoc :quality 43))]
+                                             6))))
+  (is (= 0  (:quality (update-quality-repeat [(-> test-backstage-pass
+                                                  (assoc :sell-in 5)
+                                                  (assoc :quality 43))]
+                                             6)))))
