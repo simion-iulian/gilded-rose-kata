@@ -1,16 +1,20 @@
 (ns gilded-rose.core)
 
-(defn backstage-pass? [item]
+(defn backstage-pass?
+  [item]
   (= "Backstage passes to a TAFKAL80ETC concert" (:name item)))
 
-(defn aged-brie? [item]
+(defn aged-brie?
+  [item]
   (and (= (:name item) "Aged Brie")
        (< (:quality item) 50)))
 
-(defn past-sell-in? [item]
+(defn past-sell-in?
+  [item]
   (< (:sell-in item) 0))
 
-(defn increase-quality [item val]
+(defn increase-quality
+  [item val]
   (update item :quality #(+ % val)))
 
 (defn quality-to-zero
@@ -18,20 +22,21 @@
   (assoc item :quality 0))
 
 
+(defn in-range?
+  [low-inclusive number end-inclusive]
+  (<= low-inclusive number end-inclusive))
+
 (defn decrease-quality
   [item val]
   (update item :quality #(- % val)))
 
 (defn double-increase?
   [item]
-  (and
-    (>= (:sell-in item) 5)
-    (< (:sell-in item) 10)))
+  (in-range? 5 (:sell-in item) 9))
 
 (defn triple-increase?
   [item]
-  (and (>= (:sell-in item) 0)
-       (< (:sell-in item) 5)))
+  (in-range? 0 (:sell-in item) 4))
 
 (defn update-sell-in
   [item]
