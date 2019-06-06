@@ -17,11 +17,19 @@
 (s/def ::item    (s/keys :req-un [::name ::sell-in ::quality]))
 
 (s/def ::backstage-pass (s/and ::item
-                               #(<= -1 (:sell-in %) 11)
+                               #(<= 0 (:sell-in %) 11)
                                #(<= 30 (:quality %) 50)))
 
+(s/def ::backstage-pass-triple-increase (s/and ::backstage-pass
+                               #(<=  1 (:sell-in %) 4)
+                               #(<= (:quality %) 50)))
+
+(s/def ::backstage-pass-double-increase (s/and ::backstage-pass
+                                               #(<=  5 (:sell-in %) 9)
+                                               #(<= (:quality %) 50)))
+
 ;Create a generator with monotonously increasing sell-in value
-(def backstage-pass-sample
+(def backstage-pass-all-sell-in-range
   (sort #(compare (:sell-in %1)
                   (:sell-in %2))
         (map #(assoc % :name pass-name)
@@ -29,25 +37,26 @@
                (s/gen ::backstage-pass)
                50))))
 
-(def backstage-pass
-  {:name "Backstage passes to a TAFKAL80ETC concert", :sell-in 10, :quality 33})
+(def backstage-pass-triple-increase-sample
+  (sort #(compare (:quality %1)
+                  (:quality %2))
+        (map #(assoc % :name pass-name)
+             (gen/sample
+               (s/gen ::backstage-pass-triple-increase)
+               8))))
 
+(def backstage-pass-double-increase-sample
+  (sort #(compare (:quality %1)
+                  (:quality %2))
+        (map #(assoc % :name pass-name)
+             (gen/sample
+               (s/gen ::backstage-pass-double-increase)
+               8))))
 
-(defn- first-stage-backstage-pass
-  []
-  (c/update-quality [backstage-pass]))
-
-(def current-inventory
-  '( {:name "+5 Dexterity Vest", :sell-in 9, :quality 19}
-     {:name "Aged Brie", :sell-in 1, :quality 1}
-     {:name "Elixir of the Mongoose", :sell-in 4, :quality 6}
-     {:name "Sulfuras, Hand Of Ragnaros", :sell-in -1, :quality 80}
-     {:name "Backstage passes to a TAFKAL80ETC concert", :sell-in 14, :quality 21}))
 
 (deftest check-current-inventory
-  (is (= current-inventory (c/update-current-inventory)))
   (is (= "foo"  (:name (first (c/update-quality [(c/item "foo" 0 0)])))))
-  (is (s/valid? (s/coll-of ::item) current-inventory))
+  (is (s/valid? (s/coll-of ::item) c/current-inventory))
   (is (s/valid? (s/coll-of ::item) (gen/sample (s/gen ::item) 50000))))
 
 (defn update-on-all
@@ -56,31 +65,26 @@
           items
           (range n)))
 
-(defn- update-quality-repeatedly
-  [items n]
-  (first (update-on-all items n)))
-
 (defn- max-sell-in
   [items]
   (reduce max (map :sell-in items)))
 
-;Increasing by 1
-;Increasing by 2
-;Increasing by 3
+(deftest backstage-double-increases
+  (is (every? (fn [x] (<= 0 x 2)) (map #(reduce - %) (partition 2 (interleave
+                                                                    (map :quality (c/update-quality
+                                                                                    backstage-pass-double-increase-sample))
+                                                                    (map :quality backstage-pass-double-increase-sample)))))))
+
+(deftest backstage-triple-increases
+  (is (every? (fn [x] (<= 0 x 3)) (map #(reduce - %) (partition 2 (interleave
+                                         (map :quality (c/update-quality backstage-pass-triple-increase-sample))
+                                         (map :quality backstage-pass-triple-increase-sample)))))))
 
 (deftest backstage-passes-order-test
-  (is (= 35 (:quality (first (first-stage-backstage-pass)))))
-  (is (= 37 (:quality (update-quality-repeatedly (first-stage-backstage-pass) 1))))
-  (is (= 39 (:quality (update-quality-repeatedly (first-stage-backstage-pass) 2))))
-  (is (= 46 (:quality (first (c/update-quality [(-> backstage-pass
-                                                    (assoc :sell-in 5)
-                                                    (assoc :quality 43))])))))
-  (is (= 50 (:quality (update-quality-repeatedly [(-> backstage-pass
-                                                      (assoc :sell-in 5)
-                                                      (assoc :quality 43))]
-                                                 5))))
-  (is (every?  #(<= (:quality %) 50)
-               (update-on-all backstage-pass-sample (dec (max-sell-in backstage-pass-sample)))))
-  (is (every?  #(and (< (:sell-in %) 0)
+  (is (every? #(<= (:quality %) 50)
+              (update-on-all backstage-pass-all-sell-in-range
+                             (dec (max-sell-in backstage-pass-all-sell-in-range)))))
+  (is (every? #(and (< (:sell-in %) 0)
                      (= (:quality %) 0))
-               (update-on-all backstage-pass-sample (inc (max-sell-in backstage-pass-sample))))))
+              (update-on-all backstage-pass-all-sell-in-range
+                             (inc (max-sell-in backstage-pass-all-sell-in-range))))))

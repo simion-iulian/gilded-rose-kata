@@ -66,9 +66,10 @@
 (defn- process-back-stage-pass
   [item]
   (cond
-    (and (triple-increase? item)
-         (<= (:quality item) 47))
-    (increase-quality item 3)
+    (triple-increase? item)
+    (if (<= (:quality item) 47)
+      (increase-quality item 3)
+      (assoc item :quality 50))
 
     (and (double-increase? item)
          (<= (:quality item) 48))
@@ -105,7 +106,7 @@
 (defn item [item-name, sell-in, quality]
   {:name item-name, :sell-in sell-in, :quality quality})
 
-(def ^:private current-inventory
+(def current-inventory
   [
    (item "+5 Dexterity Vest" 10 20)
    (item "Aged Brie" 2 0)
