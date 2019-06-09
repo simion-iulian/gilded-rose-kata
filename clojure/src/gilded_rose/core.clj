@@ -6,25 +6,21 @@
 
 (defn aged-brie?
   [item]
-  (and (= (:name item) "Aged Brie")
-       (< (:quality item) 50)))
+  (= (:name item) "Aged Brie"))
 
 (defn past-sell-in?
   [item]
-  (< (:sell-in item) 0))
+  (<= (:sell-in item) 0))
 
 (defn increase-quality
   [item val]
-  (update item :quality #(+ % val)))
+  (if (< (:quality item) 50)
+    (update item :quality #(+ % val))
+    item))
 
 (defn quality-to-zero
   [item]
   (assoc item :quality 0))
-
-
-(defn in-range?
-  [low-inclusive number end-inclusive]
-  (<= low-inclusive number end-inclusive))
 
 (defn decrease-quality
   [item val]
@@ -32,11 +28,11 @@
 
 (defn double-increase?
   [item]
-  (in-range? 5 (:sell-in item) 9))
+  (<= (:sell-in item) 10))
 
 (defn triple-increase?
   [item]
-  (in-range? 0 (:sell-in item) 4))
+  (<= (:sell-in item) 5))
 
 (defn update-sell-in
   [item]
@@ -44,12 +40,16 @@
 
 (defn normal-item?
   [item]
-  (or (= "+5 Dexterity Vest" (:name item))
-      (= "Elixir of the Mongoose" (:name item))))
+  (some #{(:name item)} #{"+5 Dexterity Vest"
+                          "Elixir of the Mongoose"}))
 
-(defn is-legendary?
+(defn legendary?
   [item]
   (= "Sulfuras, Hand of Ragnaros" (:name item)))
+
+(defn conjured?
+  [item]
+  (= "Conjured" (:name item)))
 
 (defn- process-past-sell-in
   [item]
@@ -84,14 +84,17 @@
 (defn- process-item
   [item]
   (cond
+    (aged-brie? item)
+    (increase-quality item 1)
+
     (past-sell-in? item)
     (process-past-sell-in item)
 
     (backstage-pass? item)
     (process-back-stage-pass item)
 
-    (aged-brie? item)
-    (increase-quality item 1)
+    ;(conjured? item)
+    ;(decrease-quality item 2)
 
     (normal-item? item)
     (decrease-quality item 1)
@@ -100,8 +103,8 @@
 
 (defn update-quality
   [items]
-  (map process-item
-       (map update-sell-in (remove is-legendary? items))))
+  (map update-sell-in
+       (map process-item (remove legendary? items))))
 
 (defn item [item-name, sell-in, quality]
   {:name item-name, :sell-in sell-in, :quality quality})
