@@ -129,7 +129,7 @@
              [{:name "Aged Brie" :quality 21 :sell-in -5}]))))
 
   (testing "that aged brie quality stops at 50"
-    (is (=  50 (max-quality
+    (is (=  49 (max-quality
                  (update-on-all
                   aged-brie-sample
                   (inc (max-sell-in aged-brie-sample))))))))
